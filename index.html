@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabor Digital · Menú</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="top">
+    <div><span class="brand" id="brand">Sabor Digital</span> <span class="note" id="city"></span></div>
+    <div id="acc"></div>
+  </div>
+</header>
+<main>
+  <div id="admin"></div>
+  <div id="menu" aria-live="polite"><p class="note">Cargando menú…</p></div>
+</main>
+<dialog id="login">
+  <form id="loginForm" method="dialog">
+    <h2>Acceso del restaurante</h2>
+    <label>Correo<input name="u" type="email" autocomplete="username" required></label>
+    <label>Contraseña<input name="p" type="password" autocomplete="current-password" required></label>
+    <p class="err" id="loginErr" role="alert"></p>
+    <div class="actions"><button type="button" class="btn ghost" data-a="closeLogin">Cancelar</button><button class="btn">Entrar</button></div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
