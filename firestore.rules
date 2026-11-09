@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Cambia este correo por el del dueño (siempre es administrador) =====
+    function esSuper() {
+      return conEmail() && request.auth.token.email in ['TU_CORREO@ejemplo.com'];
+    }
+    // ==========================================================================
+
+    function conEmail() {
+      return request.auth != null && 'email' in request.auth.token;
+    }
+    // Rol del usuario: se busca en /usuarios/{correo}. Los visitantes anónimos no tienen rol.
+    function rol() {
+      return esSuper() ? 'admin'
+        : (conEmail() && exists(/databases/$(database)/documents/usuarios/$(request.auth.token.email))
+            ? get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.rol : '');
+    }
+    function es(roles) { return rol() in roles; }
+    function bloqueado(tel) { return exists(/databases/$(database)/documents/bloqueados/$(tel)); }
+
+    function pedidoValido(d) {
+      return d.keys().hasOnly(['code','name','phone','addr','mode','notes','items','fee','total','st','t'])
+        && d.st == 0
+        && d.mode in ['mesa','recoger','domicilio']
+        && d.items is list && d.items.size() > 0 && d.items.size() <= 30
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 80
+        && d.phone is string && d.phone.matches('^3[0-9]{9}$')
+        && d.addr is string && d.addr.size() <= 200
+        && (d.mode != 'domicilio' || d.addr.size() >= 5)
+        && d.notes is string && d.notes.size() <= 300
+        && d.total is number && d.total > 0 && d.total < 5000000;
+    }
+
+    // Menú: público para leer. Solo administración lo edita; caja y bodega solo pueden cambiar "disponible".
+    match /productos/{id} {
+      allow read: if true;
+      allow create, delete: if es(['admin']);
+      allow update: if es(['admin'])
+        || (es(['caja','bodega']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disponible']));
+    }
+
+    // Inventario: lo ve todo el personal; lo modifican administración, bodega y caja (descuento al confirmar).
+    match /ingredientes/{id} {
+      allow read: if es(['admin','caja','cocina','bodega']);
+      allow create, update: if es(['admin','bodega','caja']);
+      allow delete: if es(['admin']);
+    }
+
+    match /ventas/{id} {
+      allow read, create: if es(['admin','caja']);
+      allow update, delete: if es(['admin']);
+    }
+
+    match /bloqueados/{tel} { allow read, write: if es(['admin','caja']); }
+
+    // Usuarios del personal (documento = correo en minúsculas).
+    match /usuarios/{correo} {
+      allow get: if es(['admin']) || (conEmail() && request.auth.token.email == correo);
+      allow list: if es(['admin']);
+      allow create, update, delete: if es(['admin']);
+    }
+
+    // Registro de cambios: el personal agrega; solo administración lee; nadie edita ni borra.
+    match /auditoria/{id} {
+      allow create: if es(['admin','caja','cocina','bodega'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow read: if es(['admin']);
+      allow update, delete: if false;
+    }
+
+    // Pedidos: el cliente (visitante anónimo) usa un documento con su propio uid; el personal usa el resto.
+    match /pedidos/{id} {
+      allow get: if (request.auth != null && id == request.auth.uid) || es(['admin','caja','cocina']);
+      allow list: if es(['admin','caja','cocina']);
+      allow create: if (request.auth != null && id == request.auth.uid
+          && pedidoValido(request.resource.data) && !bloqueado(request.resource.data.phone))
+        || es(['admin','caja']);
+      allow update: if es(['admin','caja','cocina'])
+        || (request.auth != null && id == request.auth.uid && resource.data.st == 3
+            && pedidoValido(request.resource.data) && !bloqueado(request.resource.data.phone));
+      allow delete: if es(['admin','caja']);
+    }
+  }
+}

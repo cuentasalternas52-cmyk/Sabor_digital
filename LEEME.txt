@@ -1,0 +1,39 @@
+SABOR DIGITAL – prototipo con Firebase (proyecto sabordigital17)
+
+QUÉ INCLUYE (según la arquitectura del documento del proyecto)
+- Aplicación web para clientes: menú en vivo, carrito, pedido (mesa / recoger / domicilio) y seguimiento del estado.
+- Panel del personal con perfiles de acceso (roles):
+    Administrador: todo (menú, recetas, inventario, reportes, usuarios, auditoría, respaldo).
+    Caja: pedidos (confirmar, entregar, anular, bloquear, pedido manual) y reportes.
+    Cocina: ve los pedidos y los marca como «listo».
+    Bodega: inventario (entradas, mermas, conteos físicos).
+- Trazabilidad: cada pedido pasa por Recibido > Preparando > Listo > Entregado; al confirmar se descuentan los ingredientes de la receta.
+- Registro de cambios (auditoría): quién, cuándo y qué cambió. No se puede editar ni borrar desde la app.
+- Respaldos: descarga y restauración de datos en JSON desde el panel.
+- Contingencia: modo sin conexión (los cambios se guardan en el equipo y se envían al reconectar), «Pedido manual» y formato en papel (contingencia.html).
+- Reportes: ventas por día, canal, platos más pedidos, ticket promedio y tiempo de confirmación.
+- Protecciones antifraude: un pedido activo por visitante, celular colombiano válido, bloqueo de números, reglas de Firestore.
+
+PASOS (una sola vez)
+1) Firebase Console > proyecto sabordigital17
+   - Build > Authentication > Sign-in method: activar «Correo electrónico/contraseña» y «Anónimo».
+   - Authentication > Users > Add user: crea la cuenta del dueño (y luego las del personal).
+   - Authentication > Settings > Dominios autorizados: agrega el dominio donde subas la página.
+2) Build > Firestore Database > Crear base de datos (modo producción).
+   - Pestaña Reglas: pega firestore.rules, cambia TU_CORREO@ejemplo.com por el correo del dueño y publica.
+3) Sube a tu hosting: index.html, contingencia.html y las carpetas css y js. Ábrelo por http(s), no con doble clic.
+4) Entra con «Acceso restaurante» usando el correo del dueño (queda como Administrador automáticamente).
+   - Productos > «Cargar menú e inventario de ejemplo» (o crea los tuyos).
+   - Usuarios: registra al personal (correo + rol). Cada persona debe tener su cuenta creada en Authentication.
+5) Opcional: App Check (reCAPTCHA v3) para bloquear bots: crea la clave en google.com/recaptcha/admin, regístrala en Firebase > App Check
+   y pega la clave de sitio en js/firebase-config.js (recaptchaSiteKey). Pruébalo antes de «Aplicar».
+
+RESPALDOS
+- Desde el panel (Respaldo y contingencia): descárgalo cada día o semana y guárdalo fuera del equipo.
+- Además puedes programar copias automáticas de Firestore en la consola (requiere plan Blaze).
+
+LÍMITES DEL PROTOTIPO
+- Sin pagos en línea (el documento recomienda usar un proveedor habilitado, no guardar tarjetas).
+- Los roles se aplican en las reglas de Firestore (seguridad real) y en la interfaz.
+- La cuenta de cada empleado se crea en la consola de Firebase; la app solo asigna el rol.
+- Los datos y cifras son de una empresa ficticia con fines académicos.

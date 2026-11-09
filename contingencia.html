@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formato manual de contingencia · Sabor Digital</title>
+<style>
+body{font:14px/1.4 system-ui,sans-serif;margin:24px;color:#111}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:22px 0 6px}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:6px;height:30px;text-align:left;font-size:12px}
+.f{display:flex;gap:24px;margin:8px 0}.f span{flex:1;border-bottom:1px solid #444;padding-bottom:2px}
+button{padding:8px 14px;margin-bottom:12px}
+@media print{button,.nota{display:none}body{margin:10mm}}
+</style></head><body>
+<button onclick="print()">Imprimir</button>
+<h1>Sabor Digital · Formato manual de contingencia</h1>
+<p class="nota">Úsalo cuando falle internet o la aplicación. Al volver el servicio, registra cada fila en el panel con «Pedido manual» y archiva la hoja.</p>
+<div class="f"><span>Fecha:</span><span>Turno:</span><span>Responsable:</span></div>
+<h2>1. Pedidos</h2>
+<table><tr><th>N.º</th><th>Hora</th><th>Cliente / celular</th><th>Modalidad (mesa, recoger, domicilio) y dirección</th><th>Productos y cantidades</th><th>Total</th><th>Pagado</th><th>Entregado (hora)</th><th>Digitado</th></tr>
+<script>for(let i=1;i<=18;i++)document.write('<tr><td>'+i+'</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>')</script></table>
+<h2>2. Consumo y mermas del turno</h2>
+<table><tr><th>Ingrediente</th><th>Existencia inicial</th><th>Entradas (compras)</th><th>Merma y motivo</th><th>Conteo físico final</th><th>Diferencia</th></tr>
+<script>for(let i=0;i<10;i++)document.write('<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>')</script></table>
+<h2>3. Incidentes</h2>
+<table><tr><th>Hora</th><th>Descripción (falla, error de pedido, reclamo)</th><th>Acción tomada</th></tr>
+<script>for(let i=0;i<4;i++)document.write('<tr><td></td><td></td><td></td></tr>')</script></table>
+</body></html>
