@@ -3,7 +3,7 @@ import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signInAnonymously,
 import {getFirestore,initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,getDoc,getDocs,onSnapshot,addDoc,updateDoc,deleteDoc,setDoc,writeBatch,increment,query,where,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {initializeAppCheck,ReCaptchaV3Provider} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 import {firebaseConfig as FC,restaurante as R,recaptchaSiteKey as RK} from "./firebase-config.js";
-
+ 
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cop=n=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n);
@@ -13,7 +13,7 @@ const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearT
 const ST=['Recibido','Preparando','Listo','Entregado'];
 const ROL={admin:'Administrador',caja:'Caja',cocina:'Cocina',bodega:'Bodega'};
 const TABS=[['pedidos','Pedidos',['admin','caja','cocina']],['productos','Productos',['admin']],['inventario','Inventario',['admin','bodega']],['reportes','Reportes',['admin','caja']],['usuarios','Usuarios',['admin']],['auditoria','Auditoría',['admin']],['respaldo','Respaldo y contingencia',['admin']]];
-let D={products:[],ing:[]},P=[],V=[],L=[],U=[],mine=null,knownP=null,uMine=()=>{},rol='',staff=false,tab='pedidos',editing=null,ready=false,msg='',pend=false,unsub=[];
+let D={products:[],ing:[]},P=[],V=[],L=[],U=[],mine=null,knownP=null,uMine=()=>{},rol='',staff=false,verMenu=false,tab='pedidos',editing=null,ready=false,msg='',pend=false,unsub=[];
 let C={cart:{},mode:'recoger',name:'',phone:'',addr:'',notes:'',ok:false};
 const can=(...r)=>r.includes(rol);
 const myTabs=()=>TABS.filter(t=>t[2].includes(rol));
@@ -26,7 +26,7 @@ const normPhone=v=>{let d=String(v).replace(/\D/g,'');if(d.length===12&&d.starts
 const sub=o=>o.items.reduce((a,i)=>a+i.q*i.p,0);
 const curP=o=>o.items.reduce((a,i)=>{const p=D.products.find(x=>x.id===i.id);return a+(p?p.p:i.p)*i.q},0)+(o.fee||0);
 const bdg=()=>{const n=P.filter(o=>o.st<3).length;return n?' ('+n+')':''};
-
+ 
 $('#brand').textContent=R.nombre;$('#city').textContent=R.ciudad;document.title=R.nombre+' · Menú';
 const configured=FC.apiKey&&!String(FC.apiKey).startsWith('PEGA');
 let db,auth;
@@ -38,7 +38,7 @@ if(configured){
 }
 const log=(accion,detalle='')=>{if(!staff||!auth.currentUser)return;addDoc(collection(db,'auditoria'),{t:Date.now(),uid:auth.currentUser.uid,email:auth.currentUser.email,rol,accion,detalle:String(detalle).slice(0,300)}).catch(()=>{})};
 const run=async f=>{try{await f()}catch(e){toast('No se pudo completar: '+(e.code||e.message))}};
-
+ 
 /* ---------- Vista pública: menú, carrito y seguimiento ---------- */
 function menuHTML(){
   if(!configured)return'<p class="note">Falta configurar Firebase en js/firebase-config.js.</p>';
@@ -82,7 +82,7 @@ function trackHTML(){
   if(mine.gone)return'<div class="card" style="margin-bottom:14px"><h3>Tu pedido fue anulado</h3><p class="note">Si tienes dudas, comunícate con el restaurante.</p><button class="btn ghost sm" data-a="closeTrack">Cerrar</button></div>';
   return`<div class="card" style="margin-bottom:14px"><h3>Tu pedido ${esc(mine.code)}</h3><div class="steps">${ST.map((s,i)=>`<i class="${i<=mine.st?'on':''}"></i>`).join('')}</div><b>${ST[mine.st]}</b><span class="note"> · ${mine.st===3?'¡Buen provecho!':mine.mode==='domicilio'?'va en camino cuando esté listo':mine.mode==='recoger'?'te avisamos aquí cuando esté listo':'te lo llevamos a la mesa'}</span><div class="note">${mine.items.map(i=>i.q+'× '+esc(i.n)).join(', ')} · ${cop(mine.total)}</div>${mine.st===3?'<button class="btn ghost sm" data-a="closeTrack" style="margin-top:8px">Cerrar</button>':''}</div>`;
 }
-
+ 
 /* ---------- Panel del personal (por rol) ---------- */
 function boardHTML(){
   const caja=can('admin','caja'),cook=can('admin','caja','cocina');
@@ -146,12 +146,13 @@ function render(){
   if(a&&/INPUT|SELECT/.test(a.tagName)&&$('#admin').contains(a)){pend=true;return}
   pend=false;
   $('#net').textContent=navigator.onLine?'':'Sin conexión: los cambios se guardan en este equipo y se enviarán al reconectar.';
-  $('#acc').innerHTML=!configured?'':staff?'<button class="btn ghost sm" data-a="logout">Cerrar sesión</button>':'<button class="btn ghost sm" data-a="openLogin">Acceso restaurante</button>';
-  $('#admin').innerHTML=staff?adminHTML():'';$('#menu').innerHTML=menuHTML();$('#bar').innerHTML=barHTML();
+  $('#acc').innerHTML=!configured?'':staff?`<button class="btn ghost sm" data-a="vista">${verMenu?'Volver al panel':'Ver menú público'}</button> <button class="btn ghost sm" data-a="logout">Cerrar sesión</button>`:'<button class="btn ghost sm" data-a="openLogin">Acceso restaurante</button>';
+  const panel=staff&&!verMenu;
+  $('#admin').innerHTML=panel?adminHTML():'';$('#menu').innerHTML=panel?'':menuHTML();$('#bar').innerHTML=panel?'':barHTML();
 }
 document.addEventListener('focusout',()=>{if(pend)setTimeout(render,50)});
 addEventListener('online',render);addEventListener('offline',render);
-
+ 
 /* ---------- Datos en vivo ---------- */
 function listen(){
   unsub.forEach(f=>f());unsub=[];ready=false;msg='';knownP=null;
@@ -218,14 +219,15 @@ async function restaurar(file){
   for(let i=0;i<items.length;i+=400){const b=writeBatch(db);items.slice(i,i+400).forEach(([c,id,d])=>b.set(doc(db,c,id),d));await b.commit()}
   log('Respaldo restaurado',items.length+' registros');toast('Respaldo restaurado.');
 }
-
+ 
 /* ---------- Eventos ---------- */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id;
   const g=ingOf(id),p=D.products.find(x=>x.id===id),o=P.find(x=>x.id===id);
   if(a==='openLogin'){$('#loginErr').textContent='';$('#login').showModal();return}
   if(a==='closeLogin'){$('#login').close();return}
-  if(a==='logout')return run(()=>signOut(auth));
+  if(a==='logout'){verMenu=false;return run(()=>signOut(auth))}
+  if(a==='vista'){verMenu=!verMenu;render();return}
   if(a==='add'||a==='rem'||a==='mode'){
     if(a==='add')C.cart[id]=Math.min(20,(C.cart[id]||0)+1);else if(a==='rem')C.cart[id]=Math.max(0,(C.cart[id]||0)-1);else C.mode=id;
     render();if($('#cart').open)$('#cart').innerHTML=cartHTML();return}
@@ -279,7 +281,7 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('input',e=>{const f=e.target.dataset.f;if(!f)return;if(f==='ok')C.ok=e.target.checked;else C[f]=e.target.value});
 document.addEventListener('change',e=>{if(e.target.id==='file'&&e.target.files[0])run(()=>restaurar(e.target.files[0]))});
-
+ 
 /* ---------- Sesión y roles ---------- */
 async function resolveRol(u){
   const ref=doc(db,'usuarios',u.email.toLowerCase());
